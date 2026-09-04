@@ -1,0 +1,23 @@
+name: Sync Google Sheet → Supabase
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # كل 30 دقيقة
+  workflow_dispatch:         # زر تشغيل يدوي من تبويب Actions
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Sync
+        env:
+          SHEET_ID:             ${{ vars.SHEET_ID }}
+          ORDERS_GID:           ${{ vars.ORDERS_GID }}
+          CUSTOMERS_GID:        ${{ vars.CUSTOMERS_GID }}
+          SUPABASE_URL:         https://dqgniabrxcqezynsbmls.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/sync_sheet.py
