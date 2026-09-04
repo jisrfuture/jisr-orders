@@ -167,4 +167,4 @@ function Section({ title, items, muted }) {
       {open && <div style={{ display: 'grid', gap: 12, marginTop: 10, opacity: muted ? 0.85 : 1 }}>{items.map((o, i) => <OrderCard key={(o.invoice_no || '') + i} o={o} />)}</div>}
     </div>
   )
-}#
+}
