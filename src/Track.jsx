@@ -8,7 +8,6 @@ const S = {
   label: { display: 'block', fontSize: 13.5, fontWeight: 600, color: OLIVE, marginBottom: 6 },
 }
 
-/* ---------- شريط المراحل (العنصر الأساسي في الصفحة) ---------- */
 function StageRail({ status }) {
   const c = canon(status)
   const idx = FLOW.indexOf(c)
@@ -81,10 +80,9 @@ const Info = ({ k, v }) => (
   <div><div style={{ fontSize: 12.5, color: OLIVE }}>{k}</div><div style={{ fontWeight: 600, color: INK }}>{v}</div></div>
 )
 
-/* ---------- الصفحة ---------- */
 export default function Track() {
+  const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [invoice, setInvoice] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState(null)
   const [orders, setOrders] = useState(null)
@@ -93,15 +91,15 @@ export default function Track() {
     e?.preventDefault()
     setErr(null)
     const digits = phone.replace(/\D/g, '')
+    if (!name.trim()) { setErr('اكتب اسمك'); return }
     if (digits.length < 9) { setErr('اكتب رقم الجوال كامل (مثال: 05xxxxxxxx)'); return }
-    if (!invoice.trim()) { setErr('اكتب رقم فاتورة واحدة من فواتيرك (مثال: QTE3650)'); return }
     setLoading(true)
-    /* لاحقاً مع SMS: يُستبدل هذا النداء بـ supabase.auth.signInWithOtp({ phone }) ثم rpc بدون رقم فاتورة */
-    const { data, error } = await supabase.rpc('track_orders', { p_phone: digits, p_invoice: invoice.trim() })
+    /* لاحقاً مع SMS: يُستبدل هذا النداء بـ supabase.auth.signInWithOtp({ phone }) ثم نفس الـ rpc */
+    const { data, error } = await supabase.rpc('track_orders', { p_phone: digits })
     setLoading(false)
     if (error) { setErr('تعذر الاتصال بالخادم، حاول بعد قليل.'); return }
     if (!data || data.length === 0) {
-      setErr('ما لقينا طلبات بهذا الجوال ورقم الفاتورة. تأكد من الرقمين، أو تواصل مع خدمة العملاء.')
+      setErr('ما لقينا طلبات مسجلة على هذا الجوال. تأكد من الرقم، أو تواصل مع خدمة العملاء.')
       setOrders(null)
       return
     }
@@ -122,17 +120,17 @@ export default function Track() {
 
         {!orders && (
           <form onSubmit={search} style={{ background: PAPER, borderRadius: 18, border: `1px solid ${LINE}`, padding: 22 }}>
+            <label style={S.label}>الاسم</label>
+            <input style={S.input} placeholder="اسمك أو اسم البراند" value={name} onChange={(e) => setName(e.target.value)} />
+            <div style={{ height: 14 }} />
             <label style={S.label}>رقم الجوال المسجل في الفاتورة</label>
             <input style={{ ...S.input, direction: 'ltr', textAlign: 'right' }} inputMode="tel" placeholder="05xxxxxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <div style={{ height: 14 }} />
-            <label style={S.label}>رقم أي فاتورة من فواتيرك</label>
-            <input style={{ ...S.input, direction: 'ltr', textAlign: 'right' }} placeholder="QTE0000" value={invoice} onChange={(e) => setInvoice(e.target.value.toUpperCase())} />
             {err && <div style={{ background: '#FEE2E2', color: '#B91C1C', borderRadius: 10, padding: '10px 12px', fontSize: 14, marginTop: 14 }}>{err}</div>}
             <button type="submit" disabled={loading} style={{ marginTop: 16, width: '100%', padding: 14, borderRadius: 12, border: 'none', background: INK, color: '#fff', fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
               {loading ? <Loader2 size={18} className="spin" /> : <Search size={18} />} عرض طلباتي
             </button>
             <p style={{ color: OLIVE, fontSize: 13, marginTop: 14, marginBottom: 0, lineHeight: 1.8 }}>
-              رقم الفاتورة يبدأ بـ QTE وتجده في فاتورتك من جسر المستقبل. البيانات تُحدّث كل نصف ساعة.
+              البيانات تُحدّث كل نصف ساعة من المصنع.
             </p>
           </form>
         )}
@@ -140,8 +138,8 @@ export default function Track() {
         {orders && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ color: INK, fontSize: 17, fontWeight: 700 }}>{orders[0].brand}</div>
-              <button onClick={() => { setOrders(null); setInvoice('') }} style={{ background: 'transparent', border: `1px solid ${LINE}`, borderRadius: 999, padding: '6px 14px', color: OLIVE, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5 }}>بحث برقم آخر</button>
+              <div style={{ color: INK, fontSize: 17, fontWeight: 700 }}>أهلاً {name.trim()} — {orders[0].brand}</div>
+              <button onClick={() => setOrders(null)} style={{ background: 'transparent', border: `1px solid ${LINE}`, borderRadius: 999, padding: '6px 14px', color: OLIVE, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5 }}>بحث برقم آخر</button>
             </div>
 
             {active.length > 0 && <Section title={`قيد التنفيذ (${active.length})`} items={active} />}
@@ -166,5 +164,4 @@ function Section({ title, items, muted }) {
       </button>
       {open && <div style={{ display: 'grid', gap: 12, marginTop: 10, opacity: muted ? 0.85 : 1 }}>{items.map((o, i) => <OrderCard key={(o.invoice_no || '') + i} o={o} />)}</div>}
     </div>
-  )
-}
+  )}
